@@ -18,6 +18,8 @@ import java.util.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import android.os.Handler
+import android.os.Looper
 
 class CameraPermissions : EventChannel.StreamHandler, RequestPermissionsResultListener {
     private var permissionGranted = false
@@ -71,7 +73,7 @@ class CameraPermissions : EventChannel.StreamHandler, RequestPermissionsResultLi
                 TAG,
                 "_onRequestPermissionsResult: granted " + java.lang.String.join(", ", *permissions)
             )
-            events!!.success(permissionGranted)
+            Handler(Looper.getMainLooper()).post { events!!.success(permissionGranted) }
         } else {
             Log.d(
                 TAG, "_onRequestPermissionsResult: received permissions but the EventSink is closed"
@@ -126,7 +128,7 @@ class CameraPermissions : EventChannel.StreamHandler, RequestPermissionsResultLi
             // Request the not granted permissions
             CoroutineScope(Dispatchers.IO).launch {
                 requestPermissions(activity, permissionsToAsk, PERMISSIONS_MULTIPLE_REQUEST) {
-                    callback(permissionsGranted.apply { addAll(it) })
+                    Dispatchers.Main.run { callback(permissionsGranted.apply { addAll(it) }) }
                 }
             }
         }
